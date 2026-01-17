@@ -71,3 +71,99 @@ error[E0382]: borrow of moved value: `s`
 ```
 
 ### References and Borrowing
+
+The rules of references are:
+
+- At any given time, you can have _either_ one mutable reference or any number of immutable references.
+- References must always be valid.
+- References do not have ownership.
+
+Take the following code:
+
+```rust
+fn main() {
+    let s1 = String::from("hello");
+
+    let (s2, len) = calculate_length(s1);
+
+    println!("The length of '{s2}' is {len}.")
+}
+
+fn calculate_length(s: String) -> (String, usize) {
+    let length = s.len();
+
+    (s, length)
+}
+```
+
+The issue is that we have to return the `String` to the calling function so that we can still use the `String` after the call to `calculate_length`.
+
+Instead, we can use a reference to the `String` value.
+
+```rust
+fn main() {
+    let s1 = String::from("hello");
+
+    let len = calculate_length(&s1);
+
+    println!("The length of '{s1}' is {len}.");
+}
+
+fn calculate_length(s: &String) -> usize {
+    s.len()
+}
+```
+
+The `&s1` is a reference to `s1` and does NOT take ownership of the value. Because the reference does not own it, the value it points to will not be dropped when the reference stops being used.
+
+We call the action of creating a reference _borrowing_. If a person owns something, you can borrow it from them. When you're done, you have to give it back because you don't own it.
+
+Basically, references are immutable by default. If we want to mutate the value, we can use a mutable reference.
+
+#### Mutable References
+
+```rust
+fn main() {
+    let mut s = String::from("hello");
+    change(&mut s);
+    println!("{s}");
+}
+
+fn change(s: &mut String) {
+    s.push_str(", world");
+}
+```
+
+We made the following changes:
+
+- `s` is now a mutable reference (`&mut s`)
+- `change` is now a function that takes a mutable reference (`fn change(s: &mut String)` and `change(&mut s)`)
+
+### Slices
+
+#### String Slices
+
+The following are equivalent:
+
+```rust
+let s = String::from("hello");
+
+let slice = &s[0..2];
+let slice = &s[..2];
+
+// and
+let len = s.len();
+
+let slice = &s[3..len];
+let slice = &s[3..];
+```
+
+#### Array Slices
+
+```rust
+let a = [1, 2, 3, 4, 5];
+
+let slice = &a[1..3];
+
+assert_eq!(slice, &[2, 3]);
+```
