@@ -33,7 +33,7 @@ let s2 = s1;
 
 When we assign `s1` to `s2`, the `String` data is copied. This means that `s2` now owns the memory, and `s1` is no longer valid. If we try to use `s1` after `s2`, we'll get a compile error.
 
-![copying_str](../assets/copying_str.svg)
+![copying_str](../../assets/copying_str.svg)
 
 ```rust
 println!("{}", s1);
