@@ -1,14 +1,14 @@
-## Smart Pointers
+# Smart Pointers
 
 Data structures that act like a pointer but also have additional metadata and capabilities.
 
 Typically implemented using structs by implementing the `Deref` and `Drop` traits so they can be used like a reference.
 
-### Using `Box<T>` to Point to Data on the Heap
+## Using `Box<T>` to Point to Data on the Heap
 
 Boxes allow you to store data on the heap rather than the stack.
 
-#### Defining Your Own Smart Pointer
+### Defining Your Own Smart Pointer
 
 Observe the following code:
 
@@ -36,7 +36,7 @@ The `MyBox<T>` type can't be dereferenced because it doesn't implement the `Dere
 
 When we call `*y`, Rust expands it to `*(y.deref())`. Rust keeps doing this until it has a value of type `T`.
 
-#### Using Deref Coercion in Functions and Methods
+### Using Deref Coercion in Functions and Methods
 
 _Deref Coercion_ is a feature that Rust provides to simplify calling methods on dereferenced values.
 
