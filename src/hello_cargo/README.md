@@ -49,3 +49,18 @@ cargo update
 ```
 
 Why? `cargo update` updates the dependencies in the `Cargo.toml` file. It ignores the previous `Cargo.lock` file and downloads the latest version of the dependencies.
+
+### Running `main.rs` with a `/bin` Directory
+
+If you're trying to run `main.rs`, but you have a `/bin` directory, make sure to include this in your `Cargo.toml` so that `cargo run` works:
+
+```toml
+[package]
+name = "ownership"
+version = "0.1.0"
+edition = "2024"
+default-run = "ownership" # here
+
+[dependencies]
+```
+
