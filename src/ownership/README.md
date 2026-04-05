@@ -24,7 +24,7 @@ s.push_str(", world!");
 println!("{}", s);
 ```
 
-When we call `String::from`, we request the memroy it needs from the memory allocator. Once the memory (or owner in this case) goes out of scope, it will be dropped by Rust calling the `drop` function.
+When we call `String::from`, we request the memory it needs from the memory allocator. Once the memory (or owner in this case) goes out of scope, it will be dropped by Rust calling the `drop` function.
 
 ```rust
 let s1 = String::from("hello");
@@ -52,7 +52,7 @@ let s2 = s1.clone();
 
 #### Ownership and Functions
 
-When we pass a value to a function, the ownership is transferred to the function. The value is no longer valid after the function call. This mimics th same behavior when we assign a variable to another variable.
+When we pass a value to a function, the ownership is transferred to the function. The value is no longer valid after the function call. This mimics the same behavior when we assign a variable to another variable.
 
 ```rust
 fn main() {
@@ -114,7 +114,7 @@ fn calculate_length(s: &String) -> usize {
 }
 ```
 
-The `&s1` is a reference to `s1` and does NOT take ownership of the value. Because the reference does not own it, the value it points to will not be dropped when the reference stops being used.
+This addresses rule #3 of references. The `&s1` is a reference to `s1` and does NOT take ownership of the value. Because the reference does not own it, the value it points to will not be dropped when the reference stops being used.
 
 We call the action of creating a reference _borrowing_. If a person owns something, you can borrow it from them. When you're done, you have to give it back because you don't own it.
 
@@ -139,7 +139,29 @@ We made the following changes:
 - `s` is now a mutable reference (`&mut s`)
 - `change` is now a function that takes a mutable reference (`fn change(s: &mut String)` and `change(&mut s)`)
 
+Let's look at the following example:
+
+```rs
+fn main() {
+    let mut s = String::from("hello");
+
+    {
+        let r1 = &mut s;
+        r1.push_str(" world");
+    } 
+
+    let r2 = &mut s;
+    r2.push_str("!");
+
+    println!("{}", r2);
+}
+```
+
+Since by the time we get to `r2` we only have one immutable reference, this code compiles and gives the output `hello world!`. `r1` goes out of scope, but the mutation still happens to `s`, and `r2` makes the changes ontop of that.
+
 ### Slices
+
+A slice is a kind of reference, so it does not have ownership.
 
 #### String Slices
 
@@ -159,6 +181,8 @@ let slice = &s[3..];
 ```
 
 #### Array Slices
+
+When we have `&s[x:y]`, it means it contains the array that starts at `x` and goes up to `y`, but does not include it.
 
 ```rust
 let a = [1, 2, 3, 4, 5];
