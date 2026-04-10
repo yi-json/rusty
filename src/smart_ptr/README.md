@@ -1,12 +1,87 @@
 # Smart Pointers
 
-Data structures that act like a pointer but also have additional metadata and capabilities.
+A pointer is a variable that stores a memory address. The most common kind of pointer in Rust is a reference, which are indicated by `&` and borrow the value they point to. No special capabilities other than referring to data, and no overhead.
+
+Smart pointers, are data structures that act like a pointer but also have additional metadata and capabilities.
 
 Typically implemented using structs by implementing the `Deref` and `Drop` traits so they can be used like a reference.
+- `Deref` trait allows an instance of the smart pointer struct to behave like a reference so you can write your code to work with either references or smart pointers
+- `Drop` trait allows you to customize the code that's run when an instance of the smart pointer goes out of scope
+
+### What's the Difference Between a Reference and a Smart Pointer?
+
+References only borrow data, but in most cases smart pointers *own* the data they point to.
 
 ## Using `Box<T>` to Point to Data on the Heap
 
-Boxes allow you to store data on the heap rather than the stack.
+Boxes allow you to store data on the heap rather than the stack. On the stack, we store the pointer to the heap data. They only povide indirection and heap allocation.
+
+This is how to store an `i32` value on the heap:
+
+```rs
+fn main() {
+    let b = Box::new(5);
+    println!("b={b}");
+}
+```
+
+Not very practical, it's more appropriate to store primitives on the stack rather than the heap.
+
+### Use Case #1: When a Type Whose Size Can't Be Known at Compile Time
+
+To solve this, we use a value of that type in a context that requires an exact size - `Box<T>`
+
+### Cons List
+
+Data structure made up of listed pairs -- like a Linked List: `(1, (2, (3, Nil)))`
+
+We produce this by recursively calling the `cons` function and we denote the base case of the recursion as `Nil`
+- Note that `Nil` != "null" or "nil" discussed in Enums
+
+```rs
+enum List {
+    Cons(i32, List),
+    Nil,
+}
+```
+
+Here, we use it in the following:
+
+```rs
+use crate::List::{Cons, Nil};
+
+fn main() {
+    let list = Cons(1, Cons(2, Cons(3, Nil)));
+}
+```
+
+This doesn't compile - why?
+- The `List` type has **infinite size**. We defined `List` with a variant that is recursive, i.e holds another value of itself directly
+- The compiler starts at the `Cons` variant, which holds a type of `i32` and a value of type `List`.
+- Therefore, to find `sizeof(List)`, we do `len(Cons) = sizeof(i32) + sizeof(List)`, and this process continues infinitely.
+
+The following displays a visual representation:
+
+![inf_list_cons](../../assets/inf_list_cons.svg)
+
+To fix this, we insert *indirection*, so instead of storing a value directly, we change the data structure to store the value indirectly via storing a pointer to the value instead on the heap. Instead of storing some mystery amount, we store the amount of `Box<T>`, which is a known pointer size. The `Box<T>` will point to the next `List` value that will be on the heap rather than inside the `Cons` variant.
+
+```rs
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+
+fn main() {
+    let list = Cons(1, Box::new(Cons(2, Box::new(Cons(3, Box::new(Nil))))));
+}
+```
+
+Now, `sizeof(list) = sizeof(i32) + sizeof(Box<T>)`
+
+![list_size_box](../../assets/list_size_box.svg)
 
 ### Defining Your Own Smart Pointer
 
