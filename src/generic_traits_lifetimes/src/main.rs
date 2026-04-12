@@ -10,4 +10,6 @@ fn main() {
     };
 
     println!("1 new tweet: {}", post.summarize());
+
+    aggregator::notify(&post);
 }

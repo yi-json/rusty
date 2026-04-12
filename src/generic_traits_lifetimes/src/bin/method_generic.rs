@@ -4,6 +4,7 @@ struct Point<T> {
 }
 
 // returns a reference to the data in the field x
+// essentially a getter for the field x
 impl<T> Point<T> {
     fn x(&self) -> &T {
         &self.x

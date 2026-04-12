@@ -6,8 +6,10 @@ We use generics to create definitions for items like structs or enums.
 
 ### In Function Definitions
 
+Let's say we want to make a generic function for finding the largest number in a list. We can declare it as follows:
+
 ```rs
-fn largest<T>(list: &[T]) -> T {}
+fn largest<T>(list: &[T]) -> &T {}
 ```
 
 Note that in [largest.rs](src/bin/largest.rs), we use the `Ord` trait bound to ensure that the type `T` implements the `Ord` trait, which is required for the `max` method to work.
@@ -22,7 +24,7 @@ fn largest<T: std::cmp::Ord>(list: &[T]) -> &T {}
 
 For structs, it's similar to functions. We can also use as many generic type parameters in a definition as you want.
 
-Observe the code in [point.rs](src/bin/point.rs).
+Observe the code in [struct_generic.rs](src/bin/struct_generic.rs).
 
 ```rs
 struct Point<T, U> {
@@ -71,13 +73,160 @@ impl Point<f32> {
 }
 ```
 
+Full code in [method_generic.rs](src/bin/method_generic.rs)
+
 ### Monomorphization: Performance with Generics
 
-When we use generics, Rust performs _monomorphization_ to turn generic code into specific code by substituting the generic type with the concrete type. This doesn't run any slower than non-generic code.
+When we use generics, Rust performs _monomorphization_ to turn generic code into specific code by substituting the generic type with the concrete type. This **does not run any slower** than non-generic code.
 
-## Defining Shared Behavior with Traits <-> Interfaces
+## Defining Shared Behavior with Traits
 
-A _trait_ defines the functionality a particular has and can share with other types. It's similar to an interface in other languages.
+A _trait_ defines the functionality a particular type has and can share with other types. It's similar to an _interface_ in other languages.
+
+### Defining a Trait
+
+A type's behavior is based on the methods we can call. We use trait definitions to group method signatures together to define a set of behaviors.
+
+For ex, we can have multiple structs that holds various kinds and amounts of text like `NewsArticle`, `SocialPost`, etc. We want to make a media aggregator library crate named `aggregator` that can display summaries of data that might be stored in a `NewsArticle` or `SocialPost` instance.
+
+### Implementing a Trait on a Type
+
+We define the following trait as follows. Full code is in [aggregator.rs](src/aggregator.rs):
+
+```rs
+pub trait Summary {
+    fn summarize_author(&self) -> String;
+
+    fn summarize(&self) -> String {
+        format!("(Read more from {}...)", self.summarize_author())
+    }
+}
+```
+
+The syntax for implementing a trait is similar to implementing regular methods. The format is `impl <TraitName> in <StructName>` like this:
+
+```rs
+pub struct SocialPost {
+    pub username: String,
+    pub content: String,
+    pub reply: bool,
+    pub repost: bool,
+}
+
+impl Summary for SocialPost {
+    fn summarize(&self) -> String {
+        format!("{}: {}", self.username, self.content)
+    }
+}
+```
+
+Now, in [main.rs](src/main.rs), we declare `aggregator` as a **module** so we can access the code in `aggregator.rs`. Let's say we want to make a `SocialPost`
+
+```rs
+mod aggregator
+use aggregator::{SocialPost, Summary}
+
+fn main() {
+    let post = SocialPost {
+        username: String::from("horse_ebooks"),
+        content: String::from("of course, as you probably know, people"),
+        reply: false,
+    };
+
+    println!("1 new tweet: {}", post.summarize());
+}
+```
+
+### The Orphan Rule
+
+This is essentially Rust's way of preventing "naming collisions" and chaos in your code. It ensures that there is only **one** clear implementation of a trait for a specific type. To implement a trait for a type, you, i.e your **crate**, must own either the **Trait** or the **Type**.
+
+If you own neither, then you are an **Orphan**, i.e no parantage over either side, which Rust forbids the implementation.
+
+By doing so, we enforce __coherence__ - there is only ever one "correct" implementation of a trait for a type in any given program. This prevents you from implementing a foreign trait on a foreign type, i.e `impl ExternalTrait for ExternalType`
+
+Observe the example in [orphan.rs](src/orphan.rs):
+
+```rs
+use aggregator::SocialPost;
+use std::fmt;
+
+// ERROR: This is an Orphan Rule violation!
+impl fmt::Display for SocialPost {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Post by {}", self.username)
+    }
+}
+```
+
+- Do I own the trait `Display`? No, `std` owns it
+- Do I own the type `SocialPost`? No, aggregator owns it
+
+Note that since we did not include `mod aggregator` at the top, we acknowledge that `SocialPost` lives in a different package
+
+Since the answer is No to both, you are an "orphan" to this implementation.
+
+### Using Traits as Parameters
+
+We can use traits to define functions that accept many different types. For now, let's start with just accepting the `Summary` type. Look in [aggregator.rs](src/aggregator.rs):
+
+#### Trait Bound Syntax
+
+A trait bound is a constraint placed on a generic type parameter that forces it to implement a specific set of traits. It restricts the allowed types to those that conform to the bound, enabling you to call methods defined in that trait on the generic type within your function or struct.
+
+```rs
+pub fn notify(item: &impl Summary) {
+    println!("Breaking news! {}", item.summarize());
+
+    // in this body, we can call any methods on item that come from the Summary trait such as summarize()
+}
+```
+
+Then to use in [main.rs](src/main.rs), we do:
+
+```rs
+mod aggregator;
+use aggregator::{SocialPost, Summary};
+
+fn main() {
+    let post = SocialPost {
+        username: String::from("horse_ebooks"),
+        content: String::from("of course, as you probably know, people"),
+        reply: false,
+    };
+
+    aggregator::notify(&post);
+}
+```
+
+Note that we don't need to add `notify` in the `use aggregator` because it is declared as `pub`!
+
+#### Multiple Trait Bounds with the `+` Syntax
+
+We can also specify more than one trait bound like so:
+
+```rs
+use std::fmt::Display;
+pub fn notify_display(item: &(impl Summary + Display))
+```
+
+Now the `item` must implement BOTH `Summary` and `Display`
+
+#### Clearer Trait Bounds with `where` Clauses
+
+Too many trait bounds has its downsides. We can rewrite multiple trait bounds using the `where` clause:
+
+```rs
+use std::fmt::{Display, Debug};
+fn some_function<T, U>(t: &T, u: &U) -> i32
+where
+    T: Display + Clone,
+    U: Clone + Debug,
+{
+    0
+}
+```
+
 
 ## Validating References with Lifetimes
 
